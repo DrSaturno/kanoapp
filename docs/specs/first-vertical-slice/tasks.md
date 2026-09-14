@@ -7,7 +7,7 @@
 - [x] T05 — Panel navegable con formularios, errores, filtros, ficha e historial. AC08; tags: ux.
 - [x] T06 — 40 tests unitarios/integración, recorrido de navegador por CLI, revisión visual móvil/escritorio, build y dependencias. [Evidencia](verification.md).
 - [x] T07a — README, amenazas y estado del backlog; sin declarar producción lista.
-- [ ] T07b — Commit y push al repositorio solicitado; confirmar contra remoto.
+- [x] T07b — Primer commit `5acfd47` publicado en `DrSaturno/kanoapp`, rama `main`; SHA local confirmado contra el remoto.
 
 ## Siguiente incremento
 

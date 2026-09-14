@@ -12,6 +12,8 @@
 - `npm run format:check`: correcto.
 - `npm audit --audit-level=high`: 0 vulnerabilidades reportadas en esta ejecución; no es una garantía permanente ni un pentest.
 - `npm run start`: arranque correcto en 127.0.0.1:3000 después de detener desarrollo. El alumno, inscripción, cargo y pago de prueba sobrevivieron al cambio de proceso.
+- Cierre de sesión desde el build redirige al acceso; nuevo login demo correcto, sin conservar la pantalla autenticada anterior.
+- GitHub Actions en Ubuntu/Node 22: [Validate Kano, ejecución 34881219824](https://github.com/DrSaturno/kanoapp/actions/runs/34881219824), resultado `success` sobre el primer commit `5acfd47`. Incluye instalación limpia, formato, tipos, lint, tests, build y auditoría de dependencias.
 
 ## Trazabilidad de aceptación
 
@@ -39,7 +41,7 @@
 
 La inspección de navegador es un recorrido asistido por CLI, **no una suite E2E ejecutada por CI**. El workflow contiene las pruebas unitarias/integración y el build. Automatizar los flujos de navegador y probar Safari/Firefox/dispositivos reales sigue siendo un gate anterior a producción.
 
-Capturas locales en `output/playwright/`: `dashboard-desktop.png`, `dashboard-mobile-final.png`, `student-mobile.png`, `student-desktop-final.png`. No se suben a Git; contienen sólo fixtures en esta ejecución. Las primeras capturas pueden preceder ajustes de tipografía; las marcadas `final` corresponden a la revisión posterior.
+Capturas locales en `output/playwright/`: `dashboard-desktop-final.png`, `dashboard-mobile-final.png`, `student-mobile.png`, `student-desktop-final.png`. No se suben a Git; contienen sólo fixtures en esta ejecución. Las primeras capturas pueden preceder ajustes de tipografía; las marcadas `final` corresponden a la revisión posterior.
 
 ## Correcciones encontradas durante la verificación
 
