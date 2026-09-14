@@ -1,0 +1,10 @@
+.next
+.kano
+node_modules
+package-lock.json
+design-system
+output
+playwright-report
+test-results
+.playwright-cli
+next-env.d.ts

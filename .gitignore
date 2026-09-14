@@ -1,0 +1,16 @@
+node_modules/
+.next/
+next-env.d.ts
+.kano/
+.env*
+!.env.example
+coverage/
+test-results/
+playwright-report/
+*.tsbuildinfo
+*.log
+.DS_Store
+.npm-cache/
+artifacts/
+output/
+.playwright-cli/
