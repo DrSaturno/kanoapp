@@ -6,6 +6,7 @@ Fecha: 2026-09-15. Entorno local, datos ficticios.
 
 - `npm run check`: tipos, ESLint, 44 pruebas y build Next.js correctos.
 - `npm run format:check`: formato correcto.
+- GitHub Actions `Validate Kano` (run 34986215763): correcto, incluida auditoría de dependencias de severidad alta.
 - Casos agregados: período y último día de febrero; lote idempotente; rechazo de duplicado; rechazo de snapshot adulterado sin escritura parcial; persistencia con migraciones 001 y 002.
 
 ## Navegador
