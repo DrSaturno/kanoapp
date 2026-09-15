@@ -10,6 +10,7 @@ Entorno: Windows, Node 22+, Next.js 16.3.5, PGlite 0.5.8, navegador Chromium int
 - `npm test`: 4 archivos y 50 casos correctos.
 - `npm run build`: build de producción correcto.
 - `npm run format:check`: formato correcto.
+- GitHub Actions [`Validate Kano` #34990027455](https://github.com/DrSaturno/kanoapp/actions/runs/34990027455): correcto, incluido `npm audit --audit-level=high`.
 
 Los casos nuevos cubren rango y fechas civiles, idempotencia, instantánea del servicio, dos reservas compitiendo por el último cupo, lista de espera, promoción al cancelar, asistencia completa, control de versión y aislamiento RLS.
 
