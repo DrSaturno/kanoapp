@@ -36,7 +36,11 @@ it('conserva identidad, alumno y auditoría al cerrar y reabrir la base en disco
     expect(data.students.find((s) => s.id === student.id)?.name).toBe('Alumno Persistente');
     expect(data.audit.some((e) => e.action === 'student.created')).toBe(true);
     const migrations = await db.query('SELECT name FROM kano_migrations');
-    expect(migrations.rows).toEqual([{ name: '001-initial' }, { name: '002-monthly-charges' }]);
+    expect(migrations.rows).toEqual([
+      { name: '001-initial' },
+      { name: '002-monthly-charges' },
+      { name: '003-scheduling' },
+    ]);
   } finally {
     await db.close();
     // Only the private directory created above belongs to this test.

@@ -1,6 +1,6 @@
 # Backlog SDD ejecutable
 
-Actualización R1a: comenzó la implementación de un subconjunto local de R0/R1. La evidencia y los pendientes efectivos están en [tareas R1a](specs/first-vertical-slice/tasks.md) y [ADR 0001](adr/0001-primera-entrega.md). Las épicas siguientes describen el producto completo, no capacidades ya entregadas. No se han contratado proveedores ni habilitado producción.
+Actualización R1a.2: el subconjunto local ya incluye administración, cobros y agenda asistida con cupos, espera y asistencia. La autogestión del alumno sigue pendiente. La evidencia está en [tareas de agenda](specs/trainer-schedule-attendance/tasks.md) y [ADR 0001](adr/0001-primera-entrega.md). Las épicas siguientes describen el producto completo, no capacidades ya entregadas. No se han contratado proveedores ni habilitado producción.
 
 ## Convención de tags
 

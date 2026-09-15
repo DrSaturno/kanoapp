@@ -41,7 +41,6 @@ export async function enroll(
     'El alumno ya está inscripto en este servicio.',
     409,
   );
-  check(existing.length < version.capacity, 'El servicio no tiene cupos disponibles.', 409);
   const id = randomUUID();
   const chargeId = randomUUID();
   await tx.query(

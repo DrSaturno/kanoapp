@@ -27,6 +27,13 @@ const billingItem = z
     dueDate: date,
   })
   .strict();
+const attendanceItem = z
+  .object({
+    bookingId: id,
+    expectedVersion,
+    status: z.enum(['present', 'absent', 'no_show']),
+  })
+  .strict();
 export const settingsSchema = z
   .object({
     name: text,
@@ -114,6 +121,46 @@ export const commandSchema = z.discriminatedUnion('type', [
     .refine((value) => value.items.every((item) => item.dueDate.startsWith(value.period)), {
       message: 'Todos los vencimientos deben pertenecer al período elegido.',
     }),
+  z
+    .object({
+      type: z.literal('schedule.generate'),
+      fromDate: date,
+      toDate: date,
+      serviceIds: z
+        .array(id)
+        .min(1, 'Seleccioná al menos un servicio.')
+        .max(20)
+        .refine((value) => new Set(value).size === value.length, 'Hay servicios repetidos.'),
+      idempotencyKey: id,
+    })
+    .strict()
+    .refine(
+      (value) => {
+        const days = Math.round(
+          (Date.parse(`${value.toDate}T12:00:00Z`) - Date.parse(`${value.fromDate}T12:00:00Z`)) /
+            86_400_000,
+        );
+        return days >= 0 && days <= 30;
+      },
+      { message: 'El rango debe tener entre 1 y 31 días.' },
+    ),
+  z.object({ type: z.literal('booking.create'), sessionId: id, studentId: id }).strict(),
+  z.object({ type: z.literal('booking.cancel'), id, expectedVersion }).strict(),
+  z.object({ type: z.literal('session.cancel'), id, expectedVersion }).strict(),
+  z
+    .object({
+      type: z.literal('attendance.save'),
+      sessionId: id,
+      expectedVersion,
+      items: z
+        .array(attendanceItem)
+        .min(1, 'La clase no tiene alumnos confirmados.')
+        .max(500)
+        .refine((items) => new Set(items.map((item) => item.bookingId)).size === items.length, {
+          message: 'Hay alumnos repetidos en la asistencia.',
+        }),
+    })
+    .strict(),
   z
     .object({ type: z.literal('settings.save'), expectedVersion, settings: settingsSchema })
     .strict(),

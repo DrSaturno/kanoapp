@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { parseMoney, financialStatus, nextMonth, localDate } from '../src/domain/finance';
 import { commandSchema } from '../src/contracts/commands';
 import { dueDateForPeriod, nextPeriod } from '../src/domain/monthly-billing';
+import { datesBetween, weekday } from '../src/domain/scheduling';
 describe('Dinero y estado financiero', () => {
   it('convierte a unidades menores sin errores binarios', () => {
     expect(parseMoney('0,29')).toBe(29);
@@ -51,6 +52,35 @@ describe('Dinero y estado financiero', () => {
     expect(localDate('America/Argentina/Buenos_Aires', new Date('2026-09-14T01:00:00Z'))).toBe(
       '2026-09-13',
     ));
+  it('itera fechas civiles sin saltos y calcula el día semanal en UTC', () => {
+    expect(datesBetween('2026-09-14', '2026-09-16')).toEqual([
+      '2026-09-14',
+      '2026-09-15',
+      '2026-09-16',
+    ]);
+    expect(weekday('2026-09-14')).toBe(1);
+  });
+  it('limita la generación de agenda a 31 días y servicios únicos', () => {
+    const serviceId = crypto.randomUUID();
+    expect(() =>
+      commandSchema.parse({
+        type: 'schedule.generate',
+        fromDate: '2026-09-01',
+        toDate: '2026-10-02',
+        serviceIds: [serviceId],
+        idempotencyKey: crypto.randomUUID(),
+      }),
+    ).toThrow();
+    expect(() =>
+      commandSchema.parse({
+        type: 'schedule.generate',
+        fromDate: '2026-09-01',
+        toDate: '2026-09-02',
+        serviceIds: [serviceId, serviceId],
+        idempotencyKey: crypto.randomUUID(),
+      }),
+    ).toThrow();
+  });
   it('no admite campos de tenant/rol ni fechas inexistentes', () => {
     expect(() =>
       commandSchema.parse({

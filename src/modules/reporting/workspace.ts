@@ -10,6 +10,8 @@ import type {
   Charge,
   Payment,
   Audit,
+  ClassSession,
+  ClassBooking,
 } from '../../contracts/workspace';
 import { tenantTransaction } from '../../infrastructure/database';
 import { settings } from '../shared';
@@ -42,6 +44,12 @@ export async function getWorkspace(db: PGlite, actor: Actor): Promise<Workspace>
     const payments = await tx.query<Payment>(
       'SELECT id,charge_id,amount,currency,method,reference,created_at::text FROM payments ORDER BY created_at DESC',
     );
+    const sessions = await tx.query<ClassSession>(
+      'SELECT id,service_id,service_version_id,title,discipline,modality,location_id,location_name,session_date,start_time,duration,capacity,state,version,created_at::text FROM class_sessions ORDER BY session_date,start_time,title',
+    );
+    const bookings = await tx.query<ClassBooking>(
+      'SELECT id,session_id,student_id,enrollment_id,status,waitlist_position,version,created_at::text,updated_at::text FROM class_bookings ORDER BY created_at,id',
+    );
     const events = await tx.query<Audit>(
       'SELECT id,action,summary,created_at::text,actor_name FROM audit_events ORDER BY created_at DESC LIMIT 100',
     );
@@ -57,6 +65,8 @@ export async function getWorkspace(db: PGlite, actor: Actor): Promise<Workspace>
       enrollments: enrollments.rows,
       charges: charges.rows,
       payments: payments.rows,
+      sessions: sessions.rows,
+      bookings: bookings.rows,
       audit: events.rows,
     };
   });

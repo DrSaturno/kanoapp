@@ -431,7 +431,7 @@ describe('Configuración y oferta adaptable', () => {
       vi.useRealTimers();
     }
   });
-  it('dos alumnos compitiendo por un lugar no generan sobrecupo', async () => {
+  it('permite más alumnos inscriptos que lugares por clase para habilitar reservas y espera', async () => {
     const v = await service(1);
     const a = await student(),
       b = await student();
@@ -445,10 +445,10 @@ describe('Configuración y oferta adaptable', () => {
         }),
       ),
     );
-    expect(result.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    expect(result.filter((r) => r.status === 'fulfilled')).toHaveLength(2);
     expect(
       (await getWorkspace(db, actor)).enrollments.filter((e) => e.service_id === v.id),
-    ).toHaveLength(1);
+    ).toHaveLength(2);
   });
   it('cambia precio futuro sin alterar cargo ni inscripción anterior', async () => {
     const { v, e } = await enrolled();
@@ -509,5 +509,156 @@ describe('Configuración y oferta adaptable', () => {
         settings: before.settings,
       }),
     ).rejects.toMatchObject({ status: 409 });
+  });
+});
+
+describe('Agenda, cupos y asistencia', () => {
+  function nextTrainingDay(days: number[]) {
+    for (let offset = 0; offset < 7; offset += 1) {
+      const date = addDays(today, offset);
+      if (days.includes(new Date(`${date}T12:00:00Z`).getUTCDay())) return date;
+    }
+    throw new Error('No hay día disponible');
+  }
+
+  it('genera clases idempotentes y conserva la instantánea del servicio', async () => {
+    const v = await service(4);
+    const target = nextTrainingDay([1, 3]);
+    const command = {
+      type: 'schedule.generate',
+      fromDate: target,
+      toDate: target,
+      serviceIds: [v.id],
+      idempotencyKey: randomUUID(),
+    } as const;
+    const first = await execute(db, actor, command);
+    expect(first.count).toBe(1);
+    expect(await execute(db, actor, command)).toEqual(first);
+    const generated = (await getWorkspace(db, actor)).sessions.find(
+      (session) => session.service_id === v.id && session.session_date === target,
+    );
+    expect(generated).toMatchObject({
+      title: 'Muay Thai',
+      start_time: '18:00',
+      capacity: 4,
+      location_id: locationId,
+    });
+    await expect(
+      execute(db, actor, { ...command, toDate: addDays(target, 1) }),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it('asigna el último cupo una sola vez y promueve la primera espera al cancelar', async () => {
+    const v = await service(1);
+    const a = await student();
+    const b = await student();
+    await Promise.all(
+      [a, b].map((s) =>
+        execute(db, actor, {
+          type: 'enrollment.create',
+          studentId: s.id,
+          serviceId: v.id,
+          dueDate: today,
+        }),
+      ),
+    );
+    const target = nextTrainingDay([1, 3]);
+    await execute(db, actor, {
+      type: 'schedule.generate',
+      fromDate: target,
+      toDate: target,
+      serviceIds: [v.id],
+      idempotencyKey: randomUUID(),
+    });
+    const session = (await getWorkspace(db, actor)).sessions.find(
+      (item) => item.service_id === v.id,
+    )!;
+    await Promise.all(
+      [a, b].map((s) =>
+        execute(db, actor, { type: 'booking.create', sessionId: session.id, studentId: s.id }),
+      ),
+    );
+    let roster = (await getWorkspace(db, actor)).bookings.filter(
+      (booking) => booking.session_id === session.id,
+    );
+    expect(roster.filter((booking) => booking.status === 'confirmed')).toHaveLength(1);
+    expect(roster.filter((booking) => booking.status === 'waitlist')).toHaveLength(1);
+    const confirmed = roster.find((booking) => booking.status === 'confirmed')!;
+    await execute(db, actor, {
+      type: 'booking.cancel',
+      id: confirmed.id,
+      expectedVersion: confirmed.version,
+    });
+    roster = (await getWorkspace(db, actor)).bookings.filter(
+      (booking) => booking.session_id === session.id,
+    );
+    expect(roster.find((booking) => booking.id === confirmed.id)?.status).toBe('cancelled');
+    expect(roster.filter((booking) => booking.status === 'confirmed')).toHaveLength(1);
+    expect(roster.filter((booking) => booking.status === 'waitlist')).toHaveLength(0);
+  });
+
+  it('registra asistencia completa y rechaza una versión obsoleta', async () => {
+    const day = new Date(`${today}T12:00:00Z`).getUTCDay();
+    const v = await execute(db, actor, {
+      type: 'service.save',
+      name: 'Clase del día',
+      discipline: 'Preparación física',
+      modality: 'group',
+      locationId,
+      days: [day],
+      time: '09:00',
+      duration: 60,
+      capacity: 5,
+      amount: 100000,
+      currency: 'ARS',
+      effectiveOn: today,
+    });
+    const s = await student();
+    await execute(db, actor, {
+      type: 'enrollment.create',
+      studentId: s.id,
+      serviceId: v.id,
+      dueDate: today,
+    });
+    await execute(db, actor, {
+      type: 'schedule.generate',
+      fromDate: today,
+      toDate: today,
+      serviceIds: [v.id],
+      idempotencyKey: randomUUID(),
+    });
+    let workspace = await getWorkspace(db, actor);
+    const session = workspace.sessions.find((item) => item.service_id === v.id)!;
+    await execute(db, actor, { type: 'booking.create', sessionId: session.id, studentId: s.id });
+    workspace = await getWorkspace(db, actor);
+    const booking = workspace.bookings.find((item) => item.session_id === session.id)!;
+    const command = {
+      type: 'attendance.save',
+      sessionId: session.id,
+      expectedVersion: session.version,
+      items: [
+        { bookingId: booking.id, expectedVersion: booking.version, status: 'present' as const },
+      ],
+    } as const;
+    await execute(db, actor, command);
+    workspace = await getWorkspace(db, actor);
+    expect(workspace.sessions.find((item) => item.id === session.id)?.state).toBe('completed');
+    expect(workspace.bookings.find((item) => item.id === booking.id)?.status).toBe('present');
+    expect(workspace.audit.some((event) => event.action === 'attendance.saved')).toBe(true);
+    await expect(execute(db, actor, command)).rejects.toMatchObject({ status: 409 });
+  });
+
+  it('mantiene la agenda aislada por RLS', async () => {
+    const v = await service();
+    const target = nextTrainingDay([1, 3]);
+    await execute(db, actor, {
+      type: 'schedule.generate',
+      fromDate: target,
+      toDate: target,
+      serviceIds: [v.id],
+      idempotencyKey: randomUUID(),
+    });
+    const otherWorkspace = await getWorkspace(db, other);
+    expect(otherWorkspace.sessions.some((session) => session.service_id === v.id)).toBe(false);
   });
 });

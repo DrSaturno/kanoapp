@@ -3,7 +3,7 @@ import { readFile, mkdir } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import type { Actor } from '../contracts/workspace';
 export type Tx = Transaction;
-const migrations = ['001-initial', '002-monthly-charges'] as const;
+const migrations = ['001-initial', '002-monthly-charges', '003-scheduling'] as const;
 export async function createDatabase(path?: string) {
   if (path) await mkdir(dirname(path), { recursive: true });
   const db = new PGlite(path);

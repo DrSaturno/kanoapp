@@ -17,11 +17,18 @@ import {
   Menu,
   ArrowUpRight,
   MapPin,
+  CalendarDays,
 } from 'lucide-react';
 import type { Workspace } from '@/contracts/workspace';
 import type { Command } from '@/contracts/commands';
 import { Dialog } from './primitives';
 import { LocationsScreen } from './locations-screen';
+import {
+  AttendanceForm,
+  ScheduleGenerateForm,
+  ScheduleScreen,
+  SessionRosterForm,
+} from './schedule-screen';
 import {
   StudentForm,
   ServiceForm,
@@ -45,6 +52,7 @@ const navigation = [
   { key: 'students', label: 'Alumnos', icon: Users },
   { key: 'services', label: 'Servicios', icon: Layers },
   { key: 'locations', label: 'Sedes', icon: MapPin },
+  { key: 'schedule', label: 'Agenda', icon: CalendarDays },
   { key: 'payments', label: 'Cobros', icon: Wallet },
   { key: 'settings', label: 'Configuración', icon: Settings },
   { key: 'audit', label: 'Historial', icon: History },
@@ -57,6 +65,7 @@ const headings: Record<string, [string, string]> = {
     'Tus lugares de entrenamiento.',
     'Creá, modificá y organizá las sedes de tu espacio.',
   ],
+  schedule: ['Tus rounds, bajo control.', 'Clases, cupos y asistencia en una sola agenda.'],
   payments: ['Cuentas claras.', 'Lo recibido, lo pendiente y el próximo paso.'],
   settings: ['Siempre a tu medida.', 'Adaptá tu espacio, tus sedes y tu operación.'],
   audit: ['Un historial confiable.', 'Consultá quién cambió qué y cuándo.'],
@@ -120,7 +129,33 @@ export function WorkspaceApp({
   const modalStudent = data.students.find((s) => s.id === modal?.id);
   const modalService = data.services.find((s) => s.id === modal?.id);
   const modalCharge = data.charges.find((c) => c.id === modal?.id);
+  const modalSession = data.sessions.find((session) => session.id === modal?.id);
   const [title, subtitle] = headings[view];
+  const modalTitle = !modal
+    ? ''
+    : modal.type === 'student'
+      ? modal.id
+        ? 'Editar alumno'
+        : 'Nuevo alumno'
+      : modal.type === 'service'
+        ? modal.id
+          ? 'Modificar servicio'
+          : 'Nuevo servicio'
+        : modal.type === 'enrollment'
+          ? 'Inscribir a un servicio'
+          : modal.type === 'payment'
+            ? 'Registrar pago'
+            : modal.type === 'billing'
+              ? 'Generar cuotas mensuales'
+              : modal.type === 'schedule'
+                ? 'Generar agenda'
+                : modal.type === 'roster'
+                  ? 'Alumnos de la clase'
+                  : modal.type === 'attendance'
+                    ? 'Tomar asistencia'
+                    : modal.id
+                      ? 'Editar sede'
+                      : 'Nueva sede';
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main">
@@ -244,6 +279,11 @@ export function WorkspaceApp({
                 <Plus size={18} /> Generar cuotas
               </button>
             )}
+            {view === 'schedule' && (
+              <button className="button primary" onClick={() => open('schedule')}>
+                <Plus size={18} /> Generar clases
+              </button>
+            )}
           </div>
           {toast && (
             <div className="toast" role="status">
@@ -267,6 +307,7 @@ export function WorkspaceApp({
             ))}
           {view === 'services' && <Services data={data} open={open} run={run} />}
           {view === 'locations' && <LocationsScreen data={data} open={open} />}
+          {view === 'schedule' && <ScheduleScreen data={data} open={open} />}
           {view === 'payments' && <Payments data={data} open={open} />}
           {view === 'settings' && <SettingsScreen data={data} open={open} run={run} />}
           {view === 'audit' && <AuditScreen data={data} />}
@@ -277,29 +318,7 @@ export function WorkspaceApp({
         </footer>
       </div>
       {modal && (
-        <Dialog
-          title={
-            modal.type === 'student'
-              ? modal.id
-                ? 'Editar alumno'
-                : 'Nuevo alumno'
-              : modal.type === 'service'
-                ? modal.id
-                  ? 'Modificar servicio'
-                  : 'Nuevo servicio'
-                : modal.type === 'enrollment'
-                  ? 'Inscribir a un servicio'
-                  : modal.type === 'payment'
-                    ? 'Registrar pago'
-                    : modal.type === 'billing'
-                      ? 'Generar cuotas mensuales'
-                      : modal.id
-                        ? 'Editar sede'
-                        : 'Nueva sede'
-          }
-          onClose={() => setModal(null)}
-          busy={saving}
-        >
+        <Dialog title={modalTitle} onClose={() => setModal(null)} busy={saving}>
           {modal.type === 'student' && <StudentForm student={modalStudent} run={run} />}
           {modal.type === 'service' && (
             <ServiceForm
@@ -323,6 +342,17 @@ export function WorkspaceApp({
               location={data.locations.find((l) => l.id === modal.id)}
               run={run}
             />
+          )}
+          {modal.type === 'schedule' && <ScheduleGenerateForm data={data} run={run} />}
+          {modal.type === 'roster' && modalSession && (
+            <SessionRosterForm
+              data={data}
+              session={modalSession}
+              run={(command) => run(command, true)}
+            />
+          )}
+          {modal.type === 'attendance' && modalSession && (
+            <AttendanceForm data={data} session={modalSession} run={run} />
           )}
         </Dialog>
       )}

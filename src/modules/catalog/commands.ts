@@ -37,15 +37,6 @@ export async function saveService(
       'Elegí una vigencia posterior a la última versión. Las condiciones anteriores se conservan.',
       409,
     );
-    const { rows: counts } = await tx.query<{ n: number }>(
-      "SELECT count(*)::int AS n FROM enrollments WHERE service_id=$1 AND state='active'",
-      [id],
-    );
-    check(
-      c.capacity >= counts[0].n,
-      'El cupo no puede ser menor a las inscripciones activas.',
-      409,
-    );
     version = versions[0].version + 1;
     await tx.query('UPDATE services SET revision=revision+1 WHERE id=$1', [id]);
   } else

@@ -21,7 +21,16 @@ import { weekdays, modalityLabels, useFormCommand, type RunCommand } from './for
 import { LocationsSummary } from './locations-screen';
 
 export type OpenDialog = (
-  type: 'student' | 'service' | 'enrollment' | 'payment' | 'location' | 'billing',
+  type:
+    | 'student'
+    | 'service'
+    | 'enrollment'
+    | 'payment'
+    | 'location'
+    | 'billing'
+    | 'schedule'
+    | 'roster'
+    | 'attendance',
   id?: string,
 ) => void;
 export function studentStatus(data: Workspace, s: Student) {
@@ -550,10 +559,9 @@ export function Services({
                   </span>
                   <span>
                     <Users size={16} />
-                    {v.duration} min · {count} de {v.capacity} lugares
+                    {v.duration} min · {count} alumnos · {v.capacity} lugares por clase
                   </span>
                 </div>
-                <progress max={v.capacity} value={count} aria-label={`Cupo ocupado de ${v.name}`} />
                 {latest.id !== v.id && (
                   <p className="scheduled-note">
                     Cambio programado: {shortDate(latest.effective_on)} ·{' '}

@@ -2118,3 +2118,459 @@ form small {
     scroll-behavior: auto !important;
   }
 }
+
+/* Agenda operativa: línea de rounds */
+.schedule-overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 20px;
+  background: var(--sidebar);
+  color: #fff;
+  border: 1px solid #292721;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.schedule-overview > div {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  align-items: center;
+  gap: 2px 12px;
+  padding: 19px 22px;
+  border-left: 1px solid #302d27;
+}
+.schedule-overview > div:first-child {
+  border-left: 0;
+}
+.schedule-overview svg {
+  grid-row: 1 / span 2;
+  color: #d68a20;
+}
+.schedule-overview span {
+  color: #aaa49a;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.schedule-overview strong {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 24px;
+}
+.schedule-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 26px;
+}
+.schedule-toolbar select {
+  width: auto;
+  min-width: 230px;
+}
+.round-timeline {
+  position: relative;
+  padding-left: 24px;
+}
+.round-timeline::before {
+  content: '';
+  position: absolute;
+  top: 13px;
+  bottom: 20px;
+  left: 5px;
+  width: 2px;
+  background: var(--accent);
+}
+.round-day {
+  position: relative;
+  margin-bottom: 30px;
+}
+.round-day::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: -24px;
+  width: 12px;
+  height: 12px;
+  border: 3px solid var(--bg);
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.round-day > header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 11px;
+}
+.round-day > header span {
+  color: var(--accent-strong);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+}
+.round-day > header h2 {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 25px;
+}
+.round-sessions {
+  display: grid;
+  gap: 11px;
+}
+.session-card {
+  display: grid;
+  grid-template-columns: 105px minmax(0, 1fr);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  overflow: hidden;
+  box-shadow: 0 7px 20px #24170608;
+}
+.session-card.cancelled {
+  opacity: 0.72;
+}
+.session-time {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 22px;
+  background: #131310;
+  color: #fff;
+}
+.session-time strong {
+  font-family: 'Barlow Condensed', sans-serif;
+  color: #e2a244;
+  font-size: 28px;
+}
+.session-time small {
+  color: #aaa49a;
+}
+.session-main {
+  padding: 18px 20px;
+}
+.session-title-line,
+.occupancy-line,
+.session-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.session-title-line h3 {
+  margin-top: 3px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 24px;
+}
+.session-state {
+  border-radius: 5px;
+  padding: 5px 8px;
+  background: #eef1f4;
+  color: #596271;
+  font-size: 11px;
+  font-weight: 600;
+}
+.session-state.scheduled {
+  color: #734200;
+  background: var(--accent-soft);
+}
+.session-state.completed {
+  color: #236143;
+  background: #eaf7ef;
+}
+.session-state.cancelled {
+  color: #8f3038;
+  background: #fff0f2;
+}
+.session-meta {
+  display: flex;
+  gap: 18px;
+  margin: 11px 0 16px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.session-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.occupancy-line {
+  margin-bottom: 7px;
+  font-size: 13px;
+}
+.occupancy-line small {
+  display: inline;
+  margin-left: 10px;
+  color: var(--accent-strong);
+}
+.occupancy-percent {
+  color: var(--muted);
+  font-size: 12px;
+}
+.session-main progress {
+  margin: 0;
+}
+.session-actions {
+  justify-content: flex-start;
+  margin-top: 17px;
+}
+.schedule-empty {
+  margin-top: 0;
+}
+.service-checklist {
+  padding: 0;
+  border: 0;
+}
+.service-checklist legend {
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.service-checklist label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  margin: 0;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-top: 0;
+}
+.service-checklist label:first-of-type {
+  border-top: 1px solid var(--line);
+  border-radius: 7px 7px 0 0;
+}
+.service-checklist label:last-of-type {
+  border-radius: 0 0 7px 7px;
+}
+.service-checklist input,
+.check-row input {
+  width: 18px;
+  min-height: 18px;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+}
+.schedule-review-total,
+.roster-class-summary,
+.attendance-head {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 16px;
+  border: 1px solid var(--accent-line);
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: #69400a;
+}
+.schedule-review-total strong {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 24px;
+}
+.schedule-review-list {
+  max-height: 275px;
+  margin-top: 12px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+}
+.schedule-review-list > div {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 13px;
+  padding: 11px 13px;
+  border-top: 1px solid var(--line);
+}
+.schedule-review-list > div:first-child {
+  border-top: 0;
+}
+.schedule-review-list time,
+.schedule-review-list > p {
+  color: var(--muted);
+  font-size: 12px;
+}
+.schedule-review-list > p {
+  padding: 13px;
+}
+.roster-add {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 10px;
+  margin: 20px 0 12px;
+}
+.roster-add label {
+  margin: 0;
+}
+.roster-list {
+  margin-top: 17px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.roster-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 62px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+}
+.roster-row:first-child {
+  border-top: 0;
+}
+.roster-row > div {
+  flex: 1;
+}
+.booking-mark {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #6c7889;
+}
+.booking-mark.confirmed,
+.booking-mark.present {
+  background: var(--green);
+}
+.booking-mark.waitlist {
+  background: var(--accent);
+}
+.booking-mark.absent,
+.booking-mark.no_show {
+  background: #af3947;
+}
+.danger-zone {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: #96333d;
+}
+.danger-zone p {
+  margin: 8px 0 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.attendance-head {
+  margin-bottom: 16px;
+}
+.attendance-list {
+  display: grid;
+  gap: 8px;
+}
+.attendance-list fieldset {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+}
+.attendance-list legend {
+  padding: 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.attendance-list label {
+  position: relative;
+  margin: 0;
+}
+.attendance-list input {
+  position: absolute;
+  opacity: 0;
+}
+.attendance-list label span {
+  display: grid;
+  place-items: center;
+  min-height: 42px;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.attendance-list input:checked + span {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+.attendance-list input:focus-visible + span {
+  outline: 3px solid #e2a244;
+  outline-offset: 2px;
+}
+
+@media (max-width: 760px) {
+  .schedule-overview {
+    grid-template-columns: 1fr;
+  }
+  .schedule-overview > div,
+  .schedule-overview > div:first-child {
+    border-left: 0;
+    border-top: 1px solid #302d27;
+  }
+  .schedule-overview > div:first-child {
+    border-top: 0;
+  }
+  .schedule-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .schedule-toolbar select {
+    width: 100%;
+  }
+  .round-timeline {
+    padding-left: 18px;
+  }
+  .round-day::before {
+    left: -18px;
+  }
+  .round-day > header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .round-day > header h2 {
+    font-size: 23px;
+  }
+  .session-card {
+    grid-template-columns: 1fr;
+  }
+  .session-time {
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 10px 16px;
+  }
+  .session-time strong {
+    font-size: 23px;
+  }
+  .session-main {
+    padding: 16px;
+  }
+  .session-title-line {
+    align-items: flex-start;
+  }
+  .session-meta {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .occupancy-line {
+    align-items: flex-start;
+  }
+  .occupancy-line small {
+    display: block;
+    margin: 3px 0 0;
+  }
+  .session-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .roster-add {
+    grid-template-columns: 1fr;
+  }
+  .schedule-review-list > div {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+  .attendance-list fieldset {
+    grid-template-columns: 1fr;
+  }
+}

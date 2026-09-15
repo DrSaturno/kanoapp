@@ -78,6 +78,34 @@ export interface Audit {
   created_at: string;
   actor_name: string;
 }
+export interface ClassSession {
+  id: string;
+  service_id: string;
+  service_version_id: string;
+  title: string;
+  discipline: string;
+  modality: 'group' | 'personal' | 'hybrid';
+  location_id: string;
+  location_name: string;
+  session_date: string;
+  start_time: string;
+  duration: number;
+  capacity: number;
+  state: 'scheduled' | 'completed' | 'cancelled';
+  version: number;
+  created_at: string;
+}
+export interface ClassBooking {
+  id: string;
+  session_id: string;
+  student_id: string;
+  enrollment_id: string;
+  status: 'confirmed' | 'waitlist' | 'cancelled' | 'present' | 'absent' | 'no_show';
+  waitlist_position: number | null;
+  version: number;
+  created_at: string;
+  updated_at: string;
+}
 export interface Workspace {
   actor: Actor;
   settings: Settings;
@@ -90,5 +118,7 @@ export interface Workspace {
   enrollments: Enrollment[];
   charges: Charge[];
   payments: Payment[];
+  sessions: ClassSession[];
+  bookings: ClassBooking[];
   audit: Audit[];
 }

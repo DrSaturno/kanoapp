@@ -8,6 +8,13 @@ import { saveStudent } from './students/commands';
 import { saveService, serviceState, saveLocation } from './catalog/commands';
 import { enroll, endEnrollment } from './enrollments/commands';
 import { generateMonthlyCharges, recordPayment } from './billing/commands';
+import {
+  cancelBooking,
+  cancelSession,
+  createBooking,
+  generateSchedule,
+  saveAttendance,
+} from './scheduling/commands';
 import { audit, settings } from './shared';
 export async function execute(
   db: PGlite,
@@ -38,6 +45,16 @@ export async function execute(
         return recordPayment(tx, actor, c);
       case 'billing.generate':
         return generateMonthlyCharges(tx, actor, c);
+      case 'schedule.generate':
+        return generateSchedule(tx, actor, c);
+      case 'booking.create':
+        return createBooking(tx, actor, c);
+      case 'booking.cancel':
+        return cancelBooking(tx, actor, c);
+      case 'session.cancel':
+        return cancelSession(tx, actor, c);
+      case 'attendance.save':
+        return saveAttendance(tx, actor, c);
       case 'settings.save': {
         check(actor.role === 'owner', 'Sólo el dueño puede cambiar la configuración global.', 403);
         const current = await settings(tx);
