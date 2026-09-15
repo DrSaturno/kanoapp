@@ -34,7 +34,7 @@ export function AuthForm() {
     <main className="auth-shell">
       <section className="auth-story">
         <div className="brand-word">
-          kano<span>.</span>
+          KANO<span>.</span>
         </div>
         <div>
           <p className="eyebrow">ESPACIO DEL ENTRENADOR</p>

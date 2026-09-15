@@ -7,13 +7,13 @@ import { tenantTransaction } from '../infrastructure/database';
 import { saveStudent } from './students/commands';
 import { saveService, serviceState, saveLocation } from './catalog/commands';
 import { enroll, endEnrollment } from './enrollments/commands';
-import { recordPayment } from './billing/commands';
+import { generateMonthlyCharges, recordPayment } from './billing/commands';
 import { audit, settings } from './shared';
 export async function execute(
   db: PGlite,
   actor: Actor,
   input: unknown,
-): Promise<{ id: string; chargeId?: string }> {
+): Promise<{ id: string; chargeId?: string; count?: number }> {
   check(
     actor.role === 'owner' || actor.role === 'admin',
     'No tenés permiso para esta operación.',
@@ -36,6 +36,8 @@ export async function execute(
         return endEnrollment(tx, actor, c);
       case 'payment.record':
         return recordPayment(tx, actor, c);
+      case 'billing.generate':
+        return generateMonthlyCharges(tx, actor, c);
       case 'settings.save': {
         check(actor.role === 'owner', 'Sólo el dueño puede cambiar la configuración global.', 403);
         const current = await settings(tx);

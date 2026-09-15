@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { parseMoney, financialStatus, nextMonth, localDate } from '../src/domain/finance';
 import { commandSchema } from '../src/contracts/commands';
+import { dueDateForPeriod, nextPeriod } from '../src/domain/monthly-billing';
 describe('Dinero y estado financiero', () => {
   it('convierte a unidades menores sin errores binarios', () => {
     expect(parseMoney('0,29')).toBe(29);
@@ -40,6 +41,11 @@ describe('Dinero y estado financiero', () => {
     expect(nextMonth('2026-01-31')).toBe('2026-02-28');
     expect(nextMonth('2028-01-31')).toBe('2028-02-29');
     expect(nextMonth('2026-12-31')).toBe('2027-01-31');
+  });
+  it('calcula períodos y vencimientos mensuales sin desbordar el mes', () => {
+    expect(nextPeriod('2026-12')).toBe('2027-01');
+    expect(dueDateForPeriod('2026-01-31', '2026-02')).toBe('2026-02-28');
+    expect(dueDateForPeriod('2028-01-31', '2028-02')).toBe('2028-02-29');
   });
   it('usa zona horaria de negocio, no UTC del servidor', () =>
     expect(localDate('America/Argentina/Buenos_Aires', new Date('2026-09-14T01:00:00Z'))).toBe(

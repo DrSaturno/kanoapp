@@ -61,6 +61,10 @@ export async function enroll(
       c.dueDate,
     ],
   );
+  await tx.query(
+    'INSERT INTO charge_periods(id,organization_id,enrollment_id,period,charge_id) VALUES($1,$2,$3,$4,$5)',
+    [randomUUID(), actor.organizationId, id, c.dueDate.slice(0, 7), chargeId],
+  );
   await audit(tx, actor, 'enrollment.created', `${students[0].name} se sumó a ${version.name}`, {
     id,
     chargeId,

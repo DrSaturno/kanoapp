@@ -37,7 +37,7 @@ export async function getWorkspace(db: PGlite, actor: Actor): Promise<Workspace>
       'SELECT id,student_id,service_id,service_version_id,state,created_at::text FROM enrollments ORDER BY created_at DESC',
     );
     const charges = await tx.query<Charge>(
-      `SELECT c.id,c.student_id,c.enrollment_id,c.description,c.amount,c.currency,c.due_date,c.created_at::text,coalesce(sum(p.amount),0)::int AS paid FROM charges c LEFT JOIN payments p ON p.charge_id=c.id GROUP BY c.id ORDER BY c.due_date`,
+      `SELECT c.id,c.student_id,c.enrollment_id,c.description,c.amount,c.currency,c.due_date,cp.period,c.created_at::text,coalesce(sum(p.amount),0)::int AS paid FROM charges c JOIN charge_periods cp ON cp.charge_id=c.id LEFT JOIN payments p ON p.charge_id=c.id GROUP BY c.id,cp.period ORDER BY c.due_date`,
     );
     const payments = await tx.query<Payment>(
       'SELECT id,charge_id,amount,currency,method,reference,created_at::text FROM payments ORDER BY created_at DESC',

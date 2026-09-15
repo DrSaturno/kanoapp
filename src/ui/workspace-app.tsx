@@ -16,11 +16,20 @@ import {
   X,
   Menu,
   ArrowUpRight,
+  MapPin,
 } from 'lucide-react';
 import type { Workspace } from '@/contracts/workspace';
 import type { Command } from '@/contracts/commands';
 import { Dialog } from './primitives';
-import { StudentForm, ServiceForm, EnrollmentForm, PaymentForm, LocationForm } from './forms';
+import { LocationsScreen } from './locations-screen';
+import {
+  StudentForm,
+  ServiceForm,
+  EnrollmentForm,
+  PaymentForm,
+  MonthlyBillingForm,
+  LocationForm,
+} from './forms';
 import {
   Dashboard,
   Students,
@@ -35,6 +44,7 @@ const navigation = [
   { key: 'home', label: 'Inicio', icon: LayoutDashboard },
   { key: 'students', label: 'Alumnos', icon: Users },
   { key: 'services', label: 'Servicios', icon: Layers },
+  { key: 'locations', label: 'Sedes', icon: MapPin },
   { key: 'payments', label: 'Cobros', icon: Wallet },
   { key: 'settings', label: 'Configuración', icon: Settings },
   { key: 'audit', label: 'Historial', icon: History },
@@ -43,6 +53,10 @@ const headings: Record<string, [string, string]> = {
   home: ['Tu espacio, en movimiento.', 'Todo lo que necesitás para organizar el día.'],
   students: ['Tu equipo.', 'Cada alumno, sus servicios y su cuenta corriente.'],
   services: ['Tu forma de entrenar.', 'Una oferta que evoluciona con vos.'],
+  locations: [
+    'Tus lugares de entrenamiento.',
+    'Creá, modificá y organizá las sedes de tu espacio.',
+  ],
   payments: ['Cuentas claras.', 'Lo recibido, lo pendiente y el próximo paso.'],
   settings: ['Siempre a tu medida.', 'Adaptá tu espacio, tus sedes y tu operación.'],
   audit: ['Un historial confiable.', 'Consultá quién cambió qué y cuándo.'],
@@ -65,7 +79,7 @@ export function WorkspaceApp({
     setToast('');
     setModal({ type, id });
   };
-  async function run(command: Command) {
+  async function run(command: Command, keepDialog = false) {
     setSaving(true);
     try {
       const res = await fetch('/api/commands', {
@@ -76,12 +90,13 @@ export function WorkspaceApp({
       const result = await res.json();
       if (res.status === 401) {
         resetSessionNavigation('/login');
-        return;
+        throw new Error('Iniciá sesión nuevamente para continuar.');
       }
       if (!res.ok) throw new Error(result.error);
       setToast('Cambios guardados. Tu espacio está actualizado.');
-      setModal(null);
+      if (!keepDialog) setModal(null);
       startRefresh(() => router.refresh());
+      return { id: String(result.id), count: result.count as number | undefined };
     } finally {
       setSaving(false);
     }
@@ -113,7 +128,7 @@ export function WorkspaceApp({
       </a>
       <aside id="workspace-navigation" className={`sidebar ${mobileNav ? 'mobile-open' : ''}`}>
         <Link href="/" className="brand-word" aria-label="Kano, inicio">
-          kano<span>.</span>
+          KANO<span>.</span>
         </Link>
         <div className="workspace-switch">
           <span className="workspace-avatar">{data.settings.name.slice(0, 1)}</span>
@@ -219,6 +234,16 @@ export function WorkspaceApp({
                 <Plus size={18} /> Nuevo servicio
               </button>
             )}
+            {view === 'locations' && (
+              <button className="button primary" onClick={() => open('location')}>
+                <Plus size={18} /> Nueva sede
+              </button>
+            )}
+            {view === 'payments' && (
+              <button className="button primary" onClick={() => open('billing')}>
+                <Plus size={18} /> Generar cuotas
+              </button>
+            )}
           </div>
           {toast && (
             <div className="toast" role="status">
@@ -241,6 +266,7 @@ export function WorkspaceApp({
               <Students data={data} open={open} />
             ))}
           {view === 'services' && <Services data={data} open={open} run={run} />}
+          {view === 'locations' && <LocationsScreen data={data} open={open} />}
           {view === 'payments' && <Payments data={data} open={open} />}
           {view === 'settings' && <SettingsScreen data={data} open={open} run={run} />}
           {view === 'audit' && <AuditScreen data={data} />}
@@ -265,9 +291,11 @@ export function WorkspaceApp({
                   ? 'Inscribir a un servicio'
                   : modal.type === 'payment'
                     ? 'Registrar pago'
-                    : modal.id
-                      ? 'Editar sede'
-                      : 'Nueva sede'
+                    : modal.type === 'billing'
+                      ? 'Generar cuotas mensuales'
+                      : modal.id
+                        ? 'Editar sede'
+                        : 'Nueva sede'
           }
           onClose={() => setModal(null)}
           busy={saving}
@@ -279,6 +307,7 @@ export function WorkspaceApp({
               service={modalService}
               version={data.serviceVersions.find((v) => v.service_id === modal?.id)}
               run={run}
+              createLocation={(command) => run(command, true)}
             />
           )}
           {modal.type === 'enrollment' && modalStudent && (
@@ -287,8 +316,13 @@ export function WorkspaceApp({
           {modal.type === 'payment' && modalCharge && (
             <PaymentForm data={data} charge={modalCharge} run={run} />
           )}
+          {modal.type === 'billing' && <MonthlyBillingForm data={data} run={run} />}
           {modal.type === 'location' && (
-            <LocationForm location={data.locations.find((l) => l.id === modal.id)} run={run} />
+            <LocationForm
+              data={data}
+              location={data.locations.find((l) => l.id === modal.id)}
+              run={run}
+            />
           )}
         </Dialog>
       )}

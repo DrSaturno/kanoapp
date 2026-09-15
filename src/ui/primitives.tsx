@@ -105,14 +105,16 @@ export function Dialog({
 }
 export function FormActions({
   pending,
+  disabled = false,
   label = 'Guardar cambios',
 }: {
   pending: boolean;
+  disabled?: boolean;
   label?: string;
 }) {
   return (
     <div className="form-actions">
-      <button className="button primary" type="submit" disabled={pending}>
+      <button className="button primary" type="submit" disabled={pending || disabled}>
         {pending ? 'Guardando…' : label}
       </button>
     </div>

@@ -3,20 +3,23 @@ import { readFile, mkdir } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import type { Actor } from '../contracts/workspace';
 export type Tx = Transaction;
+const migrations = ['001-initial', '002-monthly-charges'] as const;
 export async function createDatabase(path?: string) {
   if (path) await mkdir(dirname(path), { recursive: true });
   const db = new PGlite(path);
   await db.waitReady;
   await db.exec('CREATE TABLE IF NOT EXISTS kano_migrations (name text PRIMARY KEY)');
-  const found = await db.query("SELECT name FROM kano_migrations WHERE name='001-initial'");
-  if (!found.rows.length) {
+  const applied = await db.query<{ name: string }>('SELECT name FROM kano_migrations');
+  const names = new Set(applied.rows.map((row) => row.name));
+  for (const name of migrations) {
+    if (names.has(name)) continue;
     const sql = await readFile(
-      resolve(process.cwd(), 'src/infrastructure/migrations/001-initial.sql'),
+      resolve(process.cwd(), `src/infrastructure/migrations/${name}.sql`),
       'utf8',
     );
     await db.transaction(async (tx) => {
       await tx.exec(sql);
-      await tx.query("INSERT INTO kano_migrations(name) VALUES ('001-initial')");
+      await tx.query('INSERT INTO kano_migrations(name) VALUES ($1)', [name]);
     });
   }
   return db;

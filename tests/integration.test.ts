@@ -14,6 +14,7 @@ import {
 import { execute } from '../src/modules/dispatch';
 import { getWorkspace } from '../src/modules/reporting/workspace';
 import { localDate, addDays, financialStatus } from '../src/domain/finance';
+import { nextPeriod } from '../src/domain/monthly-billing';
 let db: PGlite, actor: Actor, other: Actor, locationId: string;
 const today = localDate('America/Argentina/Buenos_Aires');
 beforeAll(async () => {
@@ -153,6 +154,95 @@ describe('Identidad y límites de acceso', () => {
   });
 });
 describe('Cuenta corriente, concurrencia y auditoría', () => {
+  it('genera cuotas mensuales con contrato congelado, sin duplicar reintentos', async () => {
+    const { e } = await enrolled();
+    const workspace = await getWorkspace(db, actor);
+    const first = workspace.charges.find((charge) => charge.id === e.chargeId)!;
+    const enrollment = workspace.enrollments.find((item) => item.id === e.id)!;
+    const period = nextPeriod(first.period);
+    const command = {
+      type: 'billing.generate',
+      period,
+      idempotencyKey: randomUUID(),
+      items: [
+        {
+          enrollmentId: enrollment.id,
+          expectedServiceVersionId: enrollment.service_version_id,
+          expectedAmount: first.amount,
+          expectedCurrency: first.currency as 'ARS',
+          dueDate: `${period}-10`,
+        },
+      ],
+    } as const;
+    const batch = await execute(db, actor, command);
+    expect(batch.count).toBe(1);
+    expect(await execute(db, actor, command)).toEqual(batch);
+    const after = await getWorkspace(db, actor);
+    expect(after.charges.filter((charge) => charge.enrollment_id === e.id)).toHaveLength(2);
+    expect(after.charges.find((charge) => charge.period === period)).toMatchObject({
+      amount: first.amount,
+      currency: first.currency,
+      due_date: `${period}-10`,
+    });
+    await expect(
+      execute(db, actor, { ...command, idempotencyKey: randomUUID() }),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+  it('si una vista previa quedó vieja no crea cargos parciales', async () => {
+    const { e } = await enrolled();
+    const workspace = await getWorkspace(db, actor);
+    const first = workspace.charges.find((charge) => charge.id === e.chargeId)!;
+    const enrollment = workspace.enrollments.find((item) => item.id === e.id)!;
+    const period = nextPeriod(first.period);
+    const before = workspace.charges.length;
+    await expect(
+      execute(db, actor, {
+        type: 'billing.generate',
+        period,
+        idempotencyKey: randomUUID(),
+        items: [
+          {
+            enrollmentId: e.id,
+            expectedServiceVersionId: enrollment.service_version_id,
+            expectedAmount: first.amount + 1,
+            expectedCurrency: first.currency,
+            dueDate: `${period}-10`,
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({ status: 409 });
+    expect((await getWorkspace(db, actor)).charges).toHaveLength(before);
+  });
+  it('dos lotes concurrentes no duplican la cuota del período', async () => {
+    const { e } = await enrolled();
+    const workspace = await getWorkspace(db, actor);
+    const first = workspace.charges.find((charge) => charge.id === e.chargeId)!;
+    const enrollment = workspace.enrollments.find((item) => item.id === e.id)!;
+    const period = nextPeriod(first.period);
+    const base = {
+      type: 'billing.generate',
+      period,
+      items: [
+        {
+          enrollmentId: e.id,
+          expectedServiceVersionId: enrollment.service_version_id,
+          expectedAmount: first.amount,
+          expectedCurrency: first.currency,
+          dueDate: `${period}-12`,
+        },
+      ],
+    } as const;
+    const results = await Promise.allSettled([
+      execute(db, actor, { ...base, idempotencyKey: randomUUID() }),
+      execute(db, actor, { ...base, idempotencyKey: randomUUID() }),
+    ]);
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    expect(
+      (await getWorkspace(db, actor)).charges.filter(
+        (charge) => charge.enrollment_id === e.id && charge.period === period,
+      ),
+    ).toHaveLength(1);
+  });
   it('finalizar una inscripción libera el cupo sin borrar su cargo ni pago', async () => {
     const { e } = await enrolled();
     const payment = await execute(db, actor, {

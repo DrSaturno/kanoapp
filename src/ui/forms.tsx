@@ -10,8 +10,14 @@ import type {
   Location,
 } from '@/contracts/workspace';
 import { parseMoney, money, addDays, nextMonth } from '@/domain/finance';
+import { locationUsage } from '@/domain/locations';
+import { billingCandidates, nextPeriod } from '@/domain/monthly-billing';
 import { FormActions, FormError } from './primitives';
-export type RunCommand = (command: Command) => Promise<void>;
+export interface CommandResult {
+  id: string;
+  count?: number;
+}
+export type RunCommand = (command: Command) => Promise<CommandResult>;
 const stateOptions = (
   <>
     <option value="active">Activo</option>
@@ -107,11 +113,13 @@ export function ServiceForm({
   service,
   version,
   run,
+  createLocation,
 }: {
   data: Workspace;
   service?: Service;
   version?: ServiceVersion;
   run: RunCommand;
+  createLocation: RunCommand;
 }) {
   const f = useFormCommand(run);
   const [amount, setAmount] = useState(version ? String(version.amount / 100) : '');
@@ -121,7 +129,50 @@ export function ServiceForm({
       ? addDays(version.effective_on >= data.today ? version.effective_on : data.today, 1)
       : data.today,
   );
-  const activeLocations = data.locations.filter((l) => l.state === 'active');
+  const [createdLocation, setCreatedLocation] = useState<Location>();
+  const [locationId, setLocationId] = useState(
+    version?.location_id ?? data.locations.find((l) => l.state === 'active')?.id ?? '',
+  );
+  const [showLocation, setShowLocation] = useState(false);
+  const [locationName, setLocationName] = useState('');
+  const [locationAddress, setLocationAddress] = useState('');
+  const [locationError, setLocationError] = useState('');
+  const [creatingLocation, setCreatingLocation] = useState(false);
+  const activeLocations = [
+    ...data.locations.filter((l) => l.state === 'active'),
+    ...(createdLocation && !data.locations.some((l) => l.id === createdLocation.id)
+      ? [createdLocation]
+      : []),
+  ];
+  async function addLocation() {
+    if (locationName.trim().length < 2) {
+      setLocationError('Ingresá al menos 2 caracteres.');
+      return;
+    }
+    setCreatingLocation(true);
+    setLocationError('');
+    try {
+      const result = await createLocation({
+        type: 'location.save',
+        name: locationName,
+        address: locationAddress,
+        state: 'active',
+      });
+      setCreatedLocation({
+        id: result.id,
+        name: locationName.trim(),
+        address: locationAddress.trim(),
+        state: 'active',
+        version: 1,
+      });
+      setLocationId(result.id);
+      setShowLocation(false);
+    } catch (error) {
+      setLocationError(error instanceof Error ? error.message : 'No pudimos crear la sede.');
+    } finally {
+      setCreatingLocation(false);
+    }
+  }
   return (
     <form
       onSubmit={(e) =>
@@ -182,7 +233,8 @@ export function ServiceForm({
         <select
           name="locationId"
           required
-          defaultValue={version?.location_id ?? activeLocations[0]?.id}
+          value={locationId}
+          onChange={(event) => setLocationId(event.target.value)}
         >
           <option value="" disabled>
             Seleccioná una sede
@@ -194,8 +246,41 @@ export function ServiceForm({
           ))}
         </select>
       </label>
-      {!activeLocations.length && (
-        <p className="form-error">Primero creá una sede activa en Configuración.</p>
+      <button
+        className="text-button inline-create"
+        type="button"
+        onClick={() => setShowLocation(!showLocation)}
+      >
+        {showLocation ? 'Cancelar alta de sede' : '+ Crear una sede sin salir'}
+      </button>
+      {showLocation && (
+        <div className="quick-create" role="group" aria-label="Nueva sede">
+          <label>
+            Nombre
+            <input
+              value={locationName}
+              onChange={(e) => setLocationName(e.target.value)}
+              maxLength={120}
+            />
+          </label>
+          <label>
+            Dirección
+            <input
+              value={locationAddress}
+              onChange={(e) => setLocationAddress(e.target.value)}
+              maxLength={180}
+            />
+          </label>
+          {locationError && <p className="form-error">{locationError}</p>}
+          <button
+            className="button secondary"
+            type="button"
+            disabled={creatingLocation}
+            onClick={addLocation}
+          >
+            {creatingLocation ? 'Creando…' : 'Crear y usar sede'}
+          </button>
+        </div>
       )}
       <fieldset className="day-picker">
         <legend>Días de entrenamiento</legend>
@@ -429,8 +514,186 @@ export function PaymentForm({
     </form>
   );
 }
-export function LocationForm({ location, run }: { location?: Location; run: RunCommand }) {
+
+export function MonthlyBillingForm({ data, run }: { data: Workspace; run: RunCommand }) {
+  const currentPeriod = data.today.slice(0, 7);
+  const initialPeriod = billingCandidates(data, currentPeriod).length
+    ? currentPeriod
+    : nextPeriod(currentPeriod);
+  const [period, setPeriod] = useState(initialPeriod);
+  const [selected, setSelected] = useState<Record<string, string>>({});
+  const [reviewing, setReviewing] = useState(false);
+  const [pastConfirmed, setPastConfirmed] = useState(false);
+  const [key] = useState(() => crypto.randomUUID());
   const f = useFormCommand(run);
+  const candidates = billingCandidates(data, period);
+  const chosen = candidates.filter((candidate) => selected[candidate.enrollmentId]);
+  const hasPastDate = chosen.some((candidate) => selected[candidate.enrollmentId] < data.today);
+  const totals = chosen.reduce<Record<string, number>>((result, item) => {
+    result[item.currency] = (result[item.currency] ?? 0) + item.amount;
+    return result;
+  }, {});
+  function changePeriod(value: string) {
+    setPeriod(value);
+    setSelected({});
+    setReviewing(false);
+    setPastConfirmed(false);
+  }
+  function toggle(enrollmentId: string, dueDate: string, checked: boolean) {
+    setSelected((current) => {
+      const next = { ...current };
+      if (checked) next[enrollmentId] = dueDate;
+      else delete next[enrollmentId];
+      return next;
+    });
+  }
+  if (reviewing) {
+    return (
+      <form
+        onSubmit={(event) =>
+          f.submit(event, () => ({
+            type: 'billing.generate',
+            period,
+            idempotencyKey: key,
+            items: chosen.map((candidate) => ({
+              enrollmentId: candidate.enrollmentId,
+              expectedServiceVersionId: candidate.serviceVersionId,
+              expectedAmount: candidate.amount,
+              expectedCurrency: candidate.currency as 'ARS',
+              dueDate: selected[candidate.enrollmentId],
+            })),
+          }))
+        }
+      >
+        <p className="form-intro">
+          Revisá antes de crear. Esta acción agrega cargos reales a la cuenta corriente.
+        </p>
+        <div className="billing-summary">
+          <strong>
+            {chosen.length} cuota{chosen.length === 1 ? '' : 's'} · {period}
+          </strong>
+          <p>
+            {Object.entries(totals)
+              .map(([currency, total]) => money(total, currency))
+              .join(' · ')}
+          </p>
+        </div>
+        <div className="billing-review-list">
+          {chosen.map((candidate) => (
+            <div key={candidate.enrollmentId}>
+              <span>
+                <strong>{candidate.studentName}</strong>
+                <small>{candidate.description}</small>
+              </span>
+              <span>
+                <strong>{money(candidate.amount, candidate.currency)}</strong>
+                <small>Vence {selected[candidate.enrollmentId]}</small>
+              </span>
+            </div>
+          ))}
+        </div>
+        {hasPastDate && (
+          <label className="check-row">
+            <input
+              type="checkbox"
+              checked={pastConfirmed}
+              onChange={(e) => setPastConfirmed(e.target.checked)}
+            />
+            Confirmo que hay vencimientos anteriores a hoy.
+          </label>
+        )}
+        <p className="info-note">No se enviarán avisos ni se debitará dinero automáticamente.</p>
+        <FormError error={f.error} />
+        <div className="split-actions">
+          <button className="button secondary" type="button" onClick={() => setReviewing(false)}>
+            Volver
+          </button>
+          <FormActions
+            pending={f.pending}
+            disabled={hasPastDate && !pastConfirmed}
+            label="Confirmar y generar cuotas"
+          />
+        </div>
+      </form>
+    );
+  }
+  return (
+    <div>
+      <p className="form-intro">
+        Elegí el período y sólo los alumnos que querés incluir. Nada se genera hasta confirmar.
+      </p>
+      <label>
+        Período mensual
+        <input
+          type="month"
+          value={period}
+          onChange={(e) => changePeriod(e.target.value)}
+          required
+        />
+      </label>
+      <div className="billing-candidates">
+        {candidates.map((candidate) => (
+          <label className="billing-candidate" key={candidate.enrollmentId}>
+            <input
+              type="checkbox"
+              checked={Boolean(selected[candidate.enrollmentId])}
+              onChange={(e) => toggle(candidate.enrollmentId, candidate.dueDate, e.target.checked)}
+            />
+            <span>
+              <strong>{candidate.studentName}</strong>
+              <small>{candidate.description}</small>
+            </span>
+            <span>
+              <strong>{money(candidate.amount, candidate.currency)}</strong>
+              <input
+                aria-label={`Vencimiento de ${candidate.studentName}`}
+                type="date"
+                value={selected[candidate.enrollmentId] ?? candidate.dueDate}
+                min={`${period}-01`}
+                max={`${period}-31`}
+                disabled={!selected[candidate.enrollmentId]}
+                onChange={(e) =>
+                  setSelected((current) => ({
+                    ...current,
+                    [candidate.enrollmentId]: e.target.value,
+                  }))
+                }
+              />
+            </span>
+          </label>
+        ))}
+      </div>
+      {!candidates.length && (
+        <p className="info-note">
+          No hay inscripciones activas pendientes de cuota para este período.
+        </p>
+      )}
+      <div className="form-actions">
+        <button
+          className="button primary"
+          type="button"
+          disabled={!chosen.length}
+          onClick={() => setReviewing(true)}
+        >
+          Revisar{' '}
+          {chosen.length ? `${chosen.length} cuota${chosen.length === 1 ? '' : 's'}` : 'selección'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function LocationForm({
+  data,
+  location,
+  run,
+}: {
+  data: Workspace;
+  location?: Location;
+  run: RunCommand;
+}) {
+  const f = useFormCommand(run);
+  const usage = location ? locationUsage(data, location.id) : undefined;
   return (
     <form
       onSubmit={(e) =>
@@ -458,8 +721,11 @@ export function LocationForm({ location, run }: { location?: Location; run: RunC
         </select>
       </label>
       <p className="info-note">
-        Los servicios existentes conservan el nombre de sede de su versión. Para mudarlos, publicá
-        nuevas condiciones.
+        {usage
+          ? `${usage.currentServices} servicios vigentes y ${usage.activeEnrollments} inscripciones están vinculados. `
+          : ''}
+        Los servicios existentes conservan la sede de su versión. Para mudarlos, publicá nuevas
+        condiciones.
       </p>
       <FormError error={f.error} />
       <FormActions pending={f.pending} label={location ? 'Guardar sede' : 'Crear sede'} />

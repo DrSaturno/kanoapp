@@ -17,6 +17,16 @@ const methods = z
   .min(1)
   .max(2)
   .refine((v) => new Set(v).size === v.length);
+const period = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Período inválido.');
+const billingItem = z
+  .object({
+    enrollmentId: id,
+    expectedServiceVersionId: id,
+    expectedAmount: amount,
+    expectedCurrency: currency,
+    dueDate: date,
+  })
+  .strict();
 export const settingsSchema = z
   .object({
     name: text,
@@ -87,6 +97,23 @@ export const commandSchema = z.discriminatedUnion('type', [
       idempotencyKey: id,
     })
     .strict(),
+  z
+    .object({
+      type: z.literal('billing.generate'),
+      period,
+      idempotencyKey: id,
+      items: z
+        .array(billingItem)
+        .min(1, 'Seleccioná al menos un alumno.')
+        .max(100, 'Podés generar hasta 100 cuotas por operación.')
+        .refine((items) => new Set(items.map((item) => item.enrollmentId)).size === items.length, {
+          message: 'Hay inscripciones repetidas.',
+        }),
+    })
+    .strict()
+    .refine((value) => value.items.every((item) => item.dueDate.startsWith(value.period)), {
+      message: 'Todos los vencimientos deben pertenecer al período elegido.',
+    }),
   z
     .object({ type: z.literal('settings.save'), expectedVersion, settings: settingsSchema })
     .strict(),

@@ -58,6 +58,7 @@ export interface Charge {
   amount: number;
   currency: string;
   due_date: string;
+  period: string;
   paid: number;
   created_at: string;
 }

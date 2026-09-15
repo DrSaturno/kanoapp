@@ -19,18 +19,18 @@
 
 | Role | Hex | CSS Variable |
 |------|-----|--------------|
-| Primary | `#18181B` | `--color-primary` |
-| On Primary | `#FFFFFF` | `--color-on-primary` |
-| Secondary | `#3F3F46` | `--color-secondary` |
-| Accent/CTA | `#2563EB` | `--color-accent` |
-| Background | `#FAFAFA` | `--color-background` |
-| Foreground | `#09090B` | `--color-foreground` |
-| Muted | `#E8ECF0` | `--color-muted` |
-| Border | `#E4E4E7` | `--color-border` |
+| Primary | `#0C0C0C` | `--color-primary` |
+| On Primary | `#F4F1EB` | `--color-on-primary` |
+| Secondary | `#3A342B` | `--color-secondary` |
+| Accent/CTA | `#C27A16` | `--color-accent` |
+| Background | `#F5F3EF` | `--color-background` |
+| Foreground | `#201E1A` | `--color-foreground` |
+| Muted | `#E8E2D8` | `--color-muted` |
+| Border | `#E3DED5` | `--color-border` |
 | Destructive | `#DC2626` | `--color-destructive` |
 | Ring | `#18181B` | `--color-ring` |
 
-**Color Notes:** Monochrome + blue accent
+**Color Notes:** Identidad del cliente: negro/grafito, blanco cálido y ámbar. Los colores semánticos de pagos conservan texto e icono; el ámbar de marca no reemplaza estados.
 
 ### Typography
 

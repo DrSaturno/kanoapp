@@ -18,9 +18,10 @@ import type { Workspace, Student, Charge } from '@/contracts/workspace';
 import { financialStatus, money, shortDate, statusLabels } from '@/domain/finance';
 import { Badge, Avatar, Metric, Empty, FormError, FormActions } from './primitives';
 import { weekdays, modalityLabels, useFormCommand, type RunCommand } from './forms';
+import { LocationsSummary } from './locations-screen';
 
 export type OpenDialog = (
-  type: 'student' | 'service' | 'enrollment' | 'payment' | 'location',
+  type: 'student' | 'service' | 'enrollment' | 'payment' | 'location' | 'billing',
   id?: string,
 ) => void;
 export function studentStatus(data: Workspace, s: Student) {
@@ -114,7 +115,9 @@ export function Dashboard({ data, open }: { data: Workspace; open: OpenDialog })
                     <Avatar name={student.name} />
                     <div className="person">
                       <Link href={`/?view=students&student=${student.id}`}>{student.name}</Link>
-                      <small>{c.description}</small>
+                      <small>
+                        {c.description} · Período {c.period}
+                      </small>
                     </div>
                     <div className="collection-status">
                       <Badge
@@ -493,20 +496,25 @@ export function Services({
   const f = useFormCommand(run);
   return (
     <>
-      <div className="tab-bar">
-        {[
-          ['active', 'Activos'],
-          ['paused', 'Pausados'],
-          ['archived', 'Archivados'],
-        ].map(([key, label]) => (
-          <button
-            key={key}
-            className={filter === key ? 'selected' : ''}
-            onClick={() => setFilter(key)}
-          >
-            {label} <span>{data.services.filter((s) => s.state === key).length}</span>
-          </button>
-        ))}
+      <div className="service-toolbar">
+        <div className="tab-bar">
+          {[
+            ['active', 'Activos'],
+            ['paused', 'Pausados'],
+            ['archived', 'Archivados'],
+          ].map(([key, label]) => (
+            <button
+              key={key}
+              className={filter === key ? 'selected' : ''}
+              onClick={() => setFilter(key)}
+            >
+              {label} <span>{data.services.filter((s) => s.state === key).length}</span>
+            </button>
+          ))}
+        </div>
+        <Link className="text-button" href="/?view=locations">
+          <MapPin size={16} /> Administrar sedes
+        </Link>
       </div>
       <FormError error={f.error} />
       <div className="services-grid">
@@ -873,54 +881,7 @@ export function SettingsScreen({
           <FormActions pending={f.pending} label="Guardar nueva configuración" />
         </form>
       </section>
-      <section className="panel">
-        <div className="section-head">
-          <div>
-            <p className="eyebrow">DONDE ENTRENÁS</p>
-            <h2>Tus sedes</h2>
-          </div>
-          <button className="icon-button" aria-label="Crear sede" onClick={() => open('location')}>
-            <Plus size={20} />
-          </button>
-        </div>
-        {data.locations.map((l) => (
-          <div className="location-card" key={l.id}>
-            <div className="location-icon">
-              <MapPin size={20} />
-            </div>
-            <div>
-              <h3>{l.name}</h3>
-              <p>{l.address || 'Sin dirección cargada'}</p>
-              <small>
-                {l.state === 'active' ? 'Activa' : l.state === 'paused' ? 'Pausada' : 'Archivada'} ·
-                v{l.version}
-              </small>
-            </div>
-            <button
-              className="icon-button"
-              onClick={() => open('location', l.id)}
-              aria-label={`Editar sede ${l.name}`}
-            >
-              <Pencil size={17} />
-            </button>
-          </div>
-        ))}
-        {!data.locations.length && (
-          <Empty
-            title="Tu primer lugar de entrenamiento"
-            action={
-              <button className="button primary" onClick={() => open('location')}>
-                Crear sede
-              </button>
-            }
-          >
-            Podés agregar más sedes o cambiarlas cuando te mudes.
-          </Empty>
-        )}
-        <p className="panel-note">
-          Para trasladar un servicio, publicá una nueva versión con su próxima sede.
-        </p>
-      </section>
+      <LocationsSummary data={data} open={open} />
     </div>
   );
 }

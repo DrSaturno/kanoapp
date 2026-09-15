@@ -1,13 +1,13 @@
 # Kano
 
-Gestión de entrenamiento para profesionales de artes marciales y preparación física. Primera entrega **R1a: administración local**, desarrollada por módulos y guiada por especificaciones (SDD).
+Gestión de entrenamiento para profesionales de artes marciales y preparación física. Entrega **R1a.1: administración local**, desarrollada por módulos y guiada por especificaciones (SDD).
 
 ## Qué funciona
 
 - Cuenta de dueño, inicio/cierre de sesión y espacio separado por organización.
 - Alumnos adultos: alta, edición, pausa, archivo, reactivación, búsqueda y ficha.
-- Sedes y servicios personales, grupales e híbridos. Precios, moneda, días, horario, duración, cupo y vigencia editables mediante versiones.
-- Inscripción administrativa a varios servicios y generación del primer cargo con vencimiento elegido.
+- Sedes en una sección propia, con búsqueda, estados, impacto y alta rápida al crear un servicio. Servicios personales, grupales e híbridos con condiciones versionadas.
+- Inscripción administrativa a varios servicios, primer cargo y generación mensual asistida con vista previa y confirmación.
 - Cobros manuales completos/parciales, saldo derivado, cinco estados visuales y auditoría. Reintentos de un mismo pago no duplican movimientos.
 - Ajustes de nombre del espacio, zona horaria, moneda inicial, ventana de próximo vencimiento y medios manuales habilitados.
 - Panel adaptable a escritorio y pantallas móviles. Los datos sobreviven a las recargas y al reinicio del servidor.
@@ -37,11 +37,12 @@ Los valores de `.env.example` ya son los predeterminados; no hace falta crear un
 
 ### Recorrido inicial
 
-1. Configuración → crear una sede.
+1. Sedes → crear o modificar un lugar de entrenamiento.
 2. Servicios → nuevo servicio con precio, horario y cupo.
 3. Alumnos → nuevo alumno → abrir su ficha → inscribir.
 4. Elegir el vencimiento del primer cargo.
-5. Registrar una parte del pago. Consultar saldo, estado naranja e Historial.
+5. Cobros → generar las cuotas del período seleccionando alumnos y revisando importes.
+6. Registrar una parte del pago. Consultar saldo, estado naranja e Historial.
 
 Un parcial vencido se destaca en rojo, con el pago recibido conservado. Pausar/archivar no elimina saldos. Las nuevas condiciones de un servicio se aplican a **nuevas inscripciones** desde su vigencia; las existentes mantienen su versión. La migración de alumnos a nuevas condiciones será un flujo explícito posterior, con vista previa.
 
@@ -82,12 +83,12 @@ La base vive en `.kano/db`, está excluida de Git y contiene información sensib
 
 Para un respaldo de desarrollo, detener el servidor y copiar **toda** la carpeta de datos a un destino privado. No copiar mientras la base está abierta. Para restaurar, mantener la original apartada y configurar `KANO_DATA_DIR` a una copia; nunca restaurar sobre una base en uso. Este procedimiento local no sustituye backups automáticos/PITR ni una prueba de recuperación de producción.
 
-Las migraciones aplicadas se registran en `kano_migrations`. No editar una migración ya usada para cambiar datos: añadir una nueva y probar actualización/restauración. El runner actual admite sólo la migración inicial; su evolución es parte del siguiente hito de persistencia.
+Las migraciones aplicadas se registran en `kano_migrations`. No editar una migración ya usada para cambiar datos: añadir una nueva y probar actualización/restauración. El runner aplica 001 y 002 en orden y dentro de transacciones separadas.
 
 ## Próximos incrementos
 
 1. PostgreSQL administrado, identidad de producción (verificación/recuperación/MFA), permisos completos, backups y controles de despliegue.
-2. Ciclos de cobro recurrentes, ajustes/reversiones, comprobantes e integraciones de pago. Hoy se genera sólo el cargo inicial y el registro manual no cobra dinero por sí mismo.
+2. Reglas recurrentes automáticas, ajustes/reversiones, comprobantes e integraciones de pago. Hoy las cuotas mensuales se generan de manera manual, seleccionada y confirmada; no cobran dinero por sí mismas.
 3. Portal/PWA del alumno, solicitud de servicios, agenda por bloques, reservas, espera, cancelación y asistencia.
 4. Recordatorios consentidos, rutinas semanales personales/grupales, métricas de progreso y CRM.
 5. Voz con confirmación y visualización corporal futurista opcional, respetando accesibilidad y rendimiento.
